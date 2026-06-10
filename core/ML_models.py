@@ -1,6 +1,8 @@
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
 
 class RegressionModel:
     def __init__(self,X_train,y_train,X_test,y_test):
@@ -39,12 +41,24 @@ class ClassificationModel:
         return KNN_classifier,score
 
 class ClusteringModel:
-    def __init__(self,X_train,X_test):
+    def __init__(self,X_train):
         self.X_train=X_train
-        self.X_test=X_test
-        
+
     def KMeans_clustering(self):
-        KMeans_cluster=KMeans()
-        KMeans_cluster.fit(self.X_train)
-        score=KMeans_cluster.inertia_
-        return KMeans_cluster,score
+        results = {}
+        for k in range(2, 11):
+            KMeans_model = KMeans(
+            n_clusters=k,
+            random_state=42,
+            n_init=10
+        )
+            labels = KMeans_model.fit_predict(self.X_train)
+            score = silhouette_score(
+            self.X_train,
+            labels
+        )
+            results[k] = (KMeans_model, score)
+
+        best_k = max(results, key=lambda k: results[k][1])
+        best_model, best_score = results[best_k]
+        return best_model, best_score, best_k

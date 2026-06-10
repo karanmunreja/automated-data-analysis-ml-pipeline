@@ -6,11 +6,10 @@ class DataPreprocessor:
     test_size=0.2
     random_state=42
 
-    def preprocess(self,file_path,problem_type):
+    def preprocess(self,file_path,problem_type,target_column):
         df = pd.read_csv(file_path)
         df = self.remove_Id_Columns(df)
         df = self.handle_missing_values(df)
-        target_column=df.columns[-1]
         if problem_type in ["Regression", "Classification"]:
             X,y =self.split_features_target(df,target_column)
             X_train,X_test,y_train,y_test=self.split_train_test(X,y)
@@ -20,10 +19,10 @@ class DataPreprocessor:
             X_train,X_test=self.scaling_features(X_train,X_test)
             return X_train,X_test,y_train,y_test
         elif problem_type=="Clustering":
-            X_train,X_test=train_test_split(df,test_size=self.test_size,random_state=self.random_state)
-            X_train,X_test=self.encode_features(X_train,X_test)
-            X_train,X_test=self.scaling_features(X_train,X_test)
-            return X_train,X_test
+            X=df.copy()
+            X=self.encode_features_clustering(X)
+            X=self.scaling_features_clustering(X)
+            return X
         else:
             return 'Invalid problem type.'
     
@@ -76,4 +75,13 @@ class DataPreprocessor:
         X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=self.test_size,random_state=self.random_state)
         return X_train,X_test,y_train,y_test
 
-   
+    def encode_features_clustering(self, X):
+        for column in X.columns:
+            if not pd.api.types.is_numeric_dtype(X[column]):
+                X = pd.get_dummies(X, columns=[column], drop_first=True)
+        return X
+    def scaling_features_clustering(self, X):
+        scaler = StandardScaler()
+        numerical_col = X.select_dtypes(include=['int64','float64']).columns
+        X[numerical_col] = scaler.fit_transform(X[numerical_col])
+        return X
